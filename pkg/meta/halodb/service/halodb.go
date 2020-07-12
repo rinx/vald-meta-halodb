@@ -49,6 +49,14 @@ func (h *haloDB) attachThread() error {
 	return nil
 }
 
+func (h *haloDB) detachThread() error {
+	if C.graal_detach_thread(h.thread) != 0 {
+		return errors.New("failed to detach thread")
+	}
+
+	return nil
+}
+
 func (h *haloDB) Open(path string) error {
 	err := h.attachThread()
 	if err != nil {
@@ -60,6 +68,11 @@ func (h *haloDB) Open(path string) error {
 
 	if C.halodb_open(h.thread, cspath) != 0 {
 		return errors.New("failed to open halodb")
+	}
+
+	err = h.detachThread()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -81,6 +94,11 @@ func (h *haloDB) Put(key, value string) error {
 		return errors.Errorf("failed to store %s", key)
 	}
 
+	err = h.detachThread()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -96,6 +114,11 @@ func (h *haloDB) Get(key string) (string, error) {
 	res := C.GoString(C.halodb_get(h.thread, csKey))
 	if res == "" {
 		return "", errors.Errorf("failed to get %s", key)
+	}
+
+	err = h.detachThread()
+	if err != nil {
+		return "", err
 	}
 
 	return res, nil
@@ -114,6 +137,11 @@ func (h *haloDB) Delete(key string) error {
 		return errors.Errorf("failed to delete %s", key)
 	}
 
+	err = h.detachThread()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -124,6 +152,12 @@ func (h *haloDB) Size() (int64, error) {
 	}
 
 	res := C.halodb_size(h.thread)
+
+	err = h.detachThread()
+	if err != nil {
+		return -1, err
+	}
+
 	return *(*int64)(unsafe.Pointer(&res)), nil
 }
 
@@ -137,8 +171,9 @@ func (h *haloDB) Close() error {
 		return errors.New("failed to close")
 	}
 
-	if C.graal_detach_thread(h.thread) != 0 {
-		return errors.New("failed to detach thread")
+	err = h.detachThread()
+	if err != nil {
+		return err
 	}
 
 	return nil
