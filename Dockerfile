@@ -43,21 +43,18 @@ RUN CGO_ENABLED=1 \
     "cmd/${PKG}/main.go" \
     && upx -9 -o "/usr/bin/${APP_NAME}" "${APP_NAME}"
 
-FROM ubuntu:devel
+FROM gcr.io/distroless/base
 LABEL maintainer "rinx <rintaro.okamura@gmail.com>"
 
-ENV APP_NAME meta
+COPY --from=native-builder /tmp/libhalodb/target/native/graal_isolate_dynamic.h /usr/local/lib/
+COPY --from=native-builder /tmp/libhalodb/target/native/graal_isolate.h         /usr/local/lib/
+COPY --from=native-builder /tmp/libhalodb/target/native/libhalodb_dynamic.h     /usr/local/lib/
+COPY --from=native-builder /tmp/libhalodb/target/native/libhalodb.h             /usr/local/lib/
+COPY --from=native-builder /tmp/libhalodb/target/native/libhalodb.so            /usr/local/lib/
 
-COPY --from=native-builder /tmp/libhalodb/target/native/graal_isolate_dynamic.h /usr/local/lib
-COPY --from=native-builder /tmp/libhalodb/target/native/graal_isolate.h /usr/local/lib
-COPY --from=native-builder /tmp/libhalodb/target/native/libhalodb_dynamic.h /usr/local/lib
-COPY --from=native-builder /tmp/libhalodb/target/native/libhalodb.h /usr/local/lib
-COPY --from=native-builder /tmp/libhalodb/target/native/libhalodb.so /usr/local/lib
+COPY --from=native-builder /lib64/libz.so.1 /lib/x86_64-linux-gnu/libz.so.1
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /etc/passwd /etc/passwd
-
-COPY --from=builder /usr/bin/${APP_NAME} /go/bin/${APP_NAME}
+COPY --from=builder /usr/bin/meta /go/bin/meta
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
