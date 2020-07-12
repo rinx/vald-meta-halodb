@@ -16,6 +16,7 @@ import (
 type haloDB struct {
 	isolate *C.graal_isolate_t
 	thread  *C.graal_isolatethread_t
+	mu sync.Mutex
 }
 
 type HaloDB interface {
@@ -58,10 +59,19 @@ func (h *haloDB) detachThread() error {
 }
 
 func (h *haloDB) Open(path string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = h.detachThread()
+		if err != nil {
+			log.Error("failed to detach")
+		}
+	}()
 
 	cspath := C.CString(path)
 	defer C.free(unsafe.Pointer(cspath))
@@ -70,19 +80,23 @@ func (h *haloDB) Open(path string) error {
 		return errors.New("failed to open halodb")
 	}
 
-	err = h.detachThread()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (h *haloDB) Put(key, value string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = h.detachThread()
+		if err != nil {
+			log.Error("failed to detach")
+		}
+	}()
 
 	csKey, csValue := C.CString(key), C.CString(value)
 	defer func() {
@@ -94,11 +108,6 @@ func (h *haloDB) Put(key, value string) error {
 		return errors.Errorf("failed to store %s", key)
 	}
 
-	err = h.detachThread()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -107,6 +116,12 @@ func (h *haloDB) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer func() {
+		err = h.detachThread()
+		if err != nil {
+			log.Error("failed to detach")
+		}
+	}()
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
@@ -116,30 +131,29 @@ func (h *haloDB) Get(key string) (string, error) {
 		return "", errors.Errorf("failed to get %s", key)
 	}
 
-	err = h.detachThread()
-	if err != nil {
-		return "", err
-	}
-
 	return res, nil
 }
 
 func (h *haloDB) Delete(key string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = h.detachThread()
+		if err != nil {
+			log.Error("failed to detach")
+		}
+	}()
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
 
 	if C.halodb_delete(h.thread, csKey) != 0 {
 		return errors.Errorf("failed to delete %s", key)
-	}
-
-	err = h.detachThread()
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -150,30 +164,35 @@ func (h *haloDB) Size() (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+	defer func() {
+		err = h.detachThread()
+		if err != nil {
+			log.Error("failed to detach")
+		}
+	}()
 
 	res := C.halodb_size(h.thread)
-
-	err = h.detachThread()
-	if err != nil {
-		return -1, err
-	}
 
 	return *(*int64)(unsafe.Pointer(&res)), nil
 }
 
 func (h *haloDB) Close() error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = h.detachThread()
+		if err != nil {
+			log.Error("failed to detach")
+		}
+	}()
 
 	if C.halodb_close(h.thread) != 0 {
 		return errors.New("failed to close")
-	}
-
-	err = h.detachThread()
-	if err != nil {
-		return err
 	}
 
 	return nil
