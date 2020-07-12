@@ -9,8 +9,10 @@ import "C"
 import (
 	"fmt"
 	"unsafe"
+	"sync"
 
 	"github.com/rinx/vald-meta-halodb/internal/errors"
+	"github.com/rinx/vald-meta-halodb/internal/log"
 )
 
 type haloDB struct {
