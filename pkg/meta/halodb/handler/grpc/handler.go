@@ -44,7 +44,7 @@ func (s *server) GetMeta(ctx context.Context, key *payload.Meta_Key) (*payload.M
 
 	val, err := s.haloDB.Get(s.kvKey(key.GetKey()))
 	if err != nil {
-		log.Errorf("[GetMeta]\tnot found\t%+v", err)
+		log.Warnf("[GetMeta]\tkey %s not found", key.GetKey())
 		if span != nil {
 			span.SetStatus(trace.StatusCodeNotFound(err.Error()))
 		}
@@ -66,7 +66,7 @@ func (s *server) GetMetas(ctx context.Context, keys *payload.Meta_Keys) (mv *pay
 	for _, k := range keys.GetKeys() {
 		v, err := s.haloDB.Get(s.kvKey(k))
 		if err != nil {
-			log.Errorf("[GetMetas]\tnot found\t%+v", err)
+			log.Warnf("[GetMetas]\tkeys %#v not found", keys.GetKeys())
 			if span != nil {
 				span.SetStatus(trace.StatusCodeNotFound(err.Error()))
 			}
@@ -86,7 +86,7 @@ func (s *server) GetMetaInverse(ctx context.Context, val *payload.Meta_Val) (*pa
 	}()
 	key, err := s.haloDB.Get(s.vkKey(val.GetVal()))
 	if err != nil {
-		log.Errorf("[GetMetaInverse]\tnot found\t%+v", err)
+		log.Warnf("[GetMetaInverse]\tval %s not found", val.GetVal())
 		if span != nil {
 			span.SetStatus(trace.StatusCodeNotFound(err.Error()))
 		}
@@ -108,7 +108,7 @@ func (s *server) GetMetasInverse(ctx context.Context, vals *payload.Meta_Vals) (
 	for _, v := range vals.GetVals() {
 		k, err := s.haloDB.Get(s.vkKey(v))
 		if err != nil {
-			log.Errorf("[GetMetasInverse]\tnot found\t%+v", err)
+			log.Warnf("[GetMetasInverse]\tvals %#v not found", vals.GetVals())
 			if span != nil {
 				span.SetStatus(trace.StatusCodeNotFound(err.Error()))
 			}
