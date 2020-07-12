@@ -43,7 +43,8 @@ RUN CGO_ENABLED=1 \
     "cmd/${PKG}/main.go" \
     && upx -9 -o "/usr/bin/${APP_NAME}" "${APP_NAME}"
 
-FROM oracle/graalvm-ce:20.1.0-java11
+FROM ubuntu:devel
+LABEL maintainer "rinx <rintaro.okamura@gmail.com>"
 
 ENV APP_NAME meta
 
