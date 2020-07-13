@@ -8,8 +8,8 @@ package service
 import "C"
 import (
 	"fmt"
-	"unsafe"
 	"sync"
+	"unsafe"
 
 	"github.com/rinx/vald-meta-halodb/internal/errors"
 	"github.com/rinx/vald-meta-halodb/internal/log"
@@ -18,7 +18,7 @@ import (
 type haloDB struct {
 	isolate *C.graal_isolate_t
 	thread  *C.graal_isolatethread_t
-	mu sync.Mutex
+	mu      sync.Mutex
 }
 
 type HaloDB interface {
@@ -86,9 +86,6 @@ func (h *haloDB) Open(path string) error {
 }
 
 func (h *haloDB) Put(key, value string) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	err := h.attachThread()
 	if err != nil {
 		return err
@@ -114,9 +111,6 @@ func (h *haloDB) Put(key, value string) error {
 }
 
 func (h *haloDB) Get(key string) (string, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	err := h.attachThread()
 	if err != nil {
 		return "", err
@@ -140,9 +134,6 @@ func (h *haloDB) Get(key string) (string, error) {
 }
 
 func (h *haloDB) Delete(key string) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	err := h.attachThread()
 	if err != nil {
 		return err
@@ -165,9 +156,6 @@ func (h *haloDB) Delete(key string) error {
 }
 
 func (h *haloDB) Size() (int64, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	err := h.attachThread()
 	if err != nil {
 		return -1, err
