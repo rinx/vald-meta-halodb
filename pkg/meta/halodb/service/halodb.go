@@ -38,6 +38,10 @@ func New() (HaloDB, error) {
 		return nil, fmt.Errorf("failed to initialize")
 	}
 
+	if C.graal_detach_thread(thread) != 0 {
+		return nil, errors.New("failed to detach thread")
+	}
+
 	return &haloDB{
 		isolate: isolate,
 		thread:  thread,
@@ -86,6 +90,9 @@ func (h *haloDB) Open(path string) error {
 }
 
 func (h *haloDB) Put(key, value string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
@@ -111,6 +118,9 @@ func (h *haloDB) Put(key, value string) error {
 }
 
 func (h *haloDB) Get(key string) (string, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return "", err
@@ -134,6 +144,9 @@ func (h *haloDB) Get(key string) (string, error) {
 }
 
 func (h *haloDB) Delete(key string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
@@ -156,6 +169,9 @@ func (h *haloDB) Delete(key string) error {
 }
 
 func (h *haloDB) Size() (int64, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return -1, err
@@ -181,9 +197,8 @@ func (h *haloDB) Close() error {
 		return err
 	}
 	defer func() {
-		err = h.detachThread()
-		if err != nil {
-			log.Error("failed to detach")
+		if C.graal_detach_all_threads_and_tear_down_isolate(h.thread) != 0 {
+			log.Error("failed to detach all threads and teardown isolate")
 		}
 	}()
 
