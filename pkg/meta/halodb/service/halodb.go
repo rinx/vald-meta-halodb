@@ -64,6 +64,22 @@ func (h *haloDB) detachThread() error {
 	return nil
 }
 
+func (h *haloDB) pauseCompaction() error {
+	if C.halodb_pause_compaction(h.thread) != 0 {
+		return errors.New("failed to pause compaction")
+	}
+
+	return nil
+}
+
+func (h *haloDB) resumeCompaction() error {
+	if C.halodb_resume_compaction(h.thread) != 0 {
+		return errors.New("failed to resume compaction")
+	}
+
+	return nil
+}
+
 func (h *haloDB) Open(path string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -101,6 +117,17 @@ func (h *haloDB) Put(key, value string) error {
 		err = h.detachThread()
 		if err != nil {
 			log.Error("failed to detach")
+		}
+	}()
+
+	err = h.pauseCompaction()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = h.resumeCompaction()
+		if err != nil {
+			log.Error(err)
 		}
 	}()
 
@@ -155,6 +182,17 @@ func (h *haloDB) Delete(key string) error {
 		err = h.detachThread()
 		if err != nil {
 			log.Error("failed to detach")
+		}
+	}()
+
+	err = h.pauseCompaction()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = h.resumeCompaction()
+		if err != nil {
+			log.Error(err)
 		}
 	}()
 
