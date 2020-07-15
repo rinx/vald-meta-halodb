@@ -94,6 +94,11 @@ func (h *haloDB) Open(path string) error {
 		return errors.New("failed to open halodb")
 	}
 
+	err = h.pauseCompaction()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -185,6 +190,11 @@ func (h *haloDB) Close() error {
 			log.Error("failed to detach all threads and teardown isolate")
 		}
 	}()
+
+	err = h.resumeCompaction()
+	if err != nil {
+		return err
+	}
 
 	if C.halodb_close(h.thread) != 0 {
 		return errors.New("failed to close")
