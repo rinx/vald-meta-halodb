@@ -42,10 +42,6 @@ func New() (HaloDB, error) {
 		return nil, fmt.Errorf("failed to initialize")
 	}
 
-	if C.graal_detach_thread(thread) != 0 {
-		return nil, errors.New("failed to detach thread")
-	}
-
 	return &haloDB{
 		isolate: isolate,
 		thread:  thread,
@@ -53,16 +49,14 @@ func New() (HaloDB, error) {
 }
 
 func (h *haloDB) attachThread() error {
-	if C.graal_attach_thread(h.isolate, &h.thread) != 0 {
-		return fmt.Errorf("failed to attach thread")
+	thread := C.graal_get_current_thread(h.isolate)
+	if thread != nil {
+		h.thread = thread
+		return nil
 	}
 
-	return nil
-}
-
-func (h *haloDB) detachThread() error {
-	if C.graal_detach_thread(h.thread) != 0 {
-		return errors.New("failed to detach thread")
+	if C.graal_attach_thread(h.isolate, &h.thread) != 0 {
+		return fmt.Errorf("failed to attach thread")
 	}
 
 	return nil
@@ -92,12 +86,6 @@ func (h *haloDB) Open(path string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = h.detachThread()
-		if err != nil {
-			log.Error("failed to detach")
-		}
-	}()
 
 	cspath := C.CString(path)
 	defer C.free(unsafe.Pointer(cspath))
@@ -117,12 +105,6 @@ func (h *haloDB) Put(key, value string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = h.detachThread()
-		if err != nil {
-			log.Error("failed to detach")
-		}
-	}()
 
 	err = h.pauseCompaction()
 	if err != nil {
@@ -156,12 +138,6 @@ func (h *haloDB) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		err = h.detachThread()
-		if err != nil {
-			log.Error("failed to detach")
-		}
-	}()
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
@@ -182,12 +158,6 @@ func (h *haloDB) Delete(key string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = h.detachThread()
-		if err != nil {
-			log.Error("failed to detach")
-		}
-	}()
 
 	err = h.pauseCompaction()
 	if err != nil {
@@ -218,12 +188,6 @@ func (h *haloDB) Size() (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-	defer func() {
-		err = h.detachThread()
-		if err != nil {
-			log.Error("failed to detach")
-		}
-	}()
 
 	res := C.halodb_size(h.thread)
 
