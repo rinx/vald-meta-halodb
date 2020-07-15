@@ -34,7 +34,11 @@ func New() (HaloDB, error) {
 	var isolate *C.graal_isolate_t
 	var thread *C.graal_isolatethread_t
 
-	if C.graal_create_isolate(nil, &isolate, &thread) != 0 {
+	param := &C.graal_create_isolate_params_t{
+		reserved_address_space_size: 1024 * 1024 * 500,
+	}
+
+	if C.graal_create_isolate(param, &isolate, &thread) != 0 {
 		return nil, fmt.Errorf("failed to initialize")
 	}
 
