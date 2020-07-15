@@ -106,17 +106,6 @@ func (h *haloDB) Put(key, value string) error {
 		return err
 	}
 
-	err = h.pauseCompaction()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = h.resumeCompaction()
-		if err != nil {
-			log.Error(err)
-		}
-	}()
-
 	csKey, csValue := C.CString(key), C.CString(value)
 	defer func() {
 		C.free(unsafe.Pointer(csKey))
@@ -158,17 +147,6 @@ func (h *haloDB) Delete(key string) error {
 	if err != nil {
 		return err
 	}
-
-	err = h.pauseCompaction()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = h.resumeCompaction()
-		if err != nil {
-			log.Error(err)
-		}
-	}()
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
