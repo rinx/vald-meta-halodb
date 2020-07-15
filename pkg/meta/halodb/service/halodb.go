@@ -12,7 +12,6 @@ import (
 	"unsafe"
 
 	"github.com/rinx/vald-meta-halodb/internal/errors"
-	"github.com/rinx/vald-meta-halodb/internal/log"
 )
 
 type haloDB struct {
@@ -180,14 +179,13 @@ func (h *haloDB) Close() error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if C.graal_detach_all_threads_and_tear_down_isolate(h.thread) != 0 {
-			log.Error("failed to detach all threads and teardown isolate")
-		}
-	}()
 
 	if C.halodb_close(h.thread) != 0 {
 		return errors.New("failed to close")
+	}
+
+	if C.graal_detach_all_threads_and_tear_down_isolate(h.thread) != 0 {
+		return errors.New("failed to detach all threads and teardown isolate")
 	}
 
 	return nil
