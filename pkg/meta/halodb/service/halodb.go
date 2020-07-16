@@ -86,10 +86,10 @@ func (h *haloDB) Open(path string) error {
 		return err
 	}
 
-	cspath := C.CString(path)
-	defer C.free(unsafe.Pointer(cspath))
+	csPath := C.CString(path)
+	defer C.free(unsafe.Pointer(csPath))
 
-	if C.halodb_open(h.thread, cspath) != 0 {
+	if C.halodb_open(h.thread, csPath) != 0 {
 		return errors.New("failed to open halodb")
 	}
 
