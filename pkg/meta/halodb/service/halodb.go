@@ -97,6 +97,9 @@ func (h *haloDB) Open(path string) error {
 }
 
 func (h *haloDB) Put(key, value string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
@@ -133,6 +136,9 @@ func (h *haloDB) Get(key string) (string, error) {
 }
 
 func (h *haloDB) Delete(key string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := h.attachThread()
 	if err != nil {
 		return err
