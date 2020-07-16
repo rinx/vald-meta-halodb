@@ -93,6 +93,11 @@ func (h *haloDB) Open(path string) error {
 		return errors.New("failed to open halodb")
 	}
 
+	err = pauseCompaction()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -176,6 +181,11 @@ func (h *haloDB) Close() error {
 	defer h.mu.Unlock()
 
 	err := h.attachThread()
+	if err != nil {
+		return err
+	}
+
+	err = h.resumeCompaction()
 	if err != nil {
 		return err
 	}
