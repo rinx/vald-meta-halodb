@@ -10,7 +10,7 @@ WORKDIR /tmp
 RUN git clone https://github.com/rinx/libhalodb
 
 WORKDIR /tmp/libhalodb
-RUN make target/native/libhalodb.so
+RUN make OPTS="-R:MaxHeapSize=4G -R:MinHeapSize=256M -R:StackSize=32M" target/native/libhalodb.so
 
 FROM vdaas/vald-base:latest AS builder
 
