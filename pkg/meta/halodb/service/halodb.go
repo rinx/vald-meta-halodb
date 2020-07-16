@@ -93,7 +93,7 @@ func (h *haloDB) Open(path string) error {
 		return errors.New("failed to open halodb")
 	}
 
-	err = pauseCompaction()
+	err = h.pauseCompaction()
 	if err != nil {
 		return err
 	}
