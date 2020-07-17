@@ -10,7 +10,7 @@ WORKDIR /tmp
 RUN git clone https://github.com/rinx/libhalodb
 
 WORKDIR /tmp/libhalodb
-RUN make OPTS="-H:StackYellowZoneSize=320k -R:StackSize=128m" target/native/libhalodb.so
+RUN make OPTS="-R:StackSize=128m" target/native/libhalodb.so
 
 FROM vdaas/vald-base:latest AS builder
 
