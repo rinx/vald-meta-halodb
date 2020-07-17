@@ -9,7 +9,6 @@ import "C"
 import (
 	"fmt"
 	"sync"
-	"syscall"
 	"unsafe"
 
 	"github.com/rinx/vald-meta-halodb/internal/errors"
@@ -17,7 +16,7 @@ import (
 
 type haloDB struct {
 	isolate *C.graal_isolate_t
-	mutexes map[int]*sync.Mutex
+	mu      sync.Mutex
 }
 
 type HaloDB interface {
@@ -43,7 +42,6 @@ func New() (HaloDB, error) {
 
 	return &haloDB{
 		isolate: isolate,
-		mutexes: make(map[int]*sync.Mutex),
 	}, nil
 }
 
@@ -78,14 +76,8 @@ func (h *haloDB) resumeCompaction(thread *C.graal_isolatethread_t) error {
 }
 
 func (h *haloDB) Open(path string) error {
-	tid := syscall.Gettid()
-	mu, ok := h.mutexes[tid]
-	if !ok {
-		mu = &sync.Mutex{}
-		h.mutexes[tid] = mu
-	}
-	mu.Lock()
-	defer mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	thread, err := h.attachThread()
 	if err != nil {
@@ -103,14 +95,8 @@ func (h *haloDB) Open(path string) error {
 }
 
 func (h *haloDB) Put(key, value string) error {
-	tid := syscall.Gettid()
-	mu, ok := h.mutexes[tid]
-	if !ok {
-		mu = &sync.Mutex{}
-		h.mutexes[tid] = mu
-	}
-	mu.Lock()
-	defer mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	thread, err := h.attachThread()
 	if err != nil {
@@ -131,14 +117,8 @@ func (h *haloDB) Put(key, value string) error {
 }
 
 func (h *haloDB) Get(key string) (string, error) {
-	tid := syscall.Gettid()
-	mu, ok := h.mutexes[tid]
-	if !ok {
-		mu = &sync.Mutex{}
-		h.mutexes[tid] = mu
-	}
-	mu.Lock()
-	defer mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	thread, err := h.attachThread()
 	if err != nil {
@@ -157,14 +137,8 @@ func (h *haloDB) Get(key string) (string, error) {
 }
 
 func (h *haloDB) Delete(key string) error {
-	tid := syscall.Gettid()
-	mu, ok := h.mutexes[tid]
-	if !ok {
-		mu = &sync.Mutex{}
-		h.mutexes[tid] = mu
-	}
-	mu.Lock()
-	defer mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	thread, err := h.attachThread()
 	if err != nil {
@@ -182,14 +156,8 @@ func (h *haloDB) Delete(key string) error {
 }
 
 func (h *haloDB) Size() (int64, error) {
-	tid := syscall.Gettid()
-	mu, ok := h.mutexes[tid]
-	if !ok {
-		mu = &sync.Mutex{}
-		h.mutexes[tid] = mu
-	}
-	mu.Lock()
-	defer mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	thread, err := h.attachThread()
 	if err != nil {
@@ -202,14 +170,8 @@ func (h *haloDB) Size() (int64, error) {
 }
 
 func (h *haloDB) Close() error {
-	tid := syscall.Gettid()
-	mu, ok := h.mutexes[tid]
-	if !ok {
-		mu = &sync.Mutex{}
-		h.mutexes[tid] = mu
-	}
-	mu.Lock()
-	defer mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	thread, err := h.attachThread()
 	if err != nil {

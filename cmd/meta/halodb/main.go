@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/rinx/vald-meta-halodb/internal/info"
 	"github.com/rinx/vald-meta-halodb/internal/log"
@@ -18,6 +19,8 @@ const (
 )
 
 func main() {
+	runtime.GOMAXPROCS(1)
+
 	if err := safety.RecoverFunc(func() error {
 		return runner.Do(
 			context.Background(),
