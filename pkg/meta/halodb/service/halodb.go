@@ -83,6 +83,7 @@ func (h *haloDB) Open(path string) error {
 	if err != nil {
 		return err
 	}
+	defer C.free(unsafe.Pointer(thread))
 
 	csPath := C.CString(path)
 	defer C.free(unsafe.Pointer(csPath))
@@ -102,6 +103,7 @@ func (h *haloDB) Put(key, value string) error {
 	if err != nil {
 		return err
 	}
+	defer C.free(unsafe.Pointer(thread))
 
 	csKey, csValue := C.CString(key), C.CString(value)
 	defer func() {
@@ -124,6 +126,7 @@ func (h *haloDB) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer C.free(unsafe.Pointer(thread))
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
@@ -144,6 +147,7 @@ func (h *haloDB) Delete(key string) error {
 	if err != nil {
 		return err
 	}
+	defer C.free(unsafe.Pointer(thread))
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
@@ -163,6 +167,7 @@ func (h *haloDB) Size() (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+	defer C.free(unsafe.Pointer(thread))
 
 	res := C.halodb_size(thread)
 
@@ -177,6 +182,7 @@ func (h *haloDB) Close() error {
 	if err != nil {
 		return err
 	}
+	defer C.free(unsafe.Pointer(thread))
 
 	if C.halodb_close(thread) != 0 {
 		return errors.New("failed to close")
