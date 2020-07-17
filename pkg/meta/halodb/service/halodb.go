@@ -16,7 +16,6 @@ import (
 
 type haloDB struct {
 	isolate *C.graal_isolate_t
-	thread  *C.graal_isolatethread_t
 	mu      sync.Mutex
 }
 
@@ -43,34 +42,33 @@ func New() (HaloDB, error) {
 
 	return &haloDB{
 		isolate: isolate,
-		thread:  thread,
 	}, nil
 }
 
-func (h *haloDB) attachThread() error {
+func (h *haloDB) attachThread() (*C.graal_isolatethread_t, error) {
 	thread := C.graal_get_current_thread(h.isolate)
 	if thread != nil {
-		h.thread = thread
-		return nil
+		return thread, nil
 	}
 
-	if C.graal_attach_thread(h.isolate, &h.thread) != 0 {
-		return fmt.Errorf("failed to attach thread")
+	var newThread *C.graal_isolatethread_t
+	if C.graal_attach_thread(h.isolate, &newThread) != 0 {
+		return nil, fmt.Errorf("failed to attach thread")
 	}
 
-	return nil
+	return newThread, nil
 }
 
-func (h *haloDB) pauseCompaction() error {
-	if C.halodb_pause_compaction(h.thread) != 0 {
+func (h *haloDB) pauseCompaction(thread *C.graal_isolatethread_t) error {
+	if C.halodb_pause_compaction(thread) != 0 {
 		return errors.New("failed to pause compaction")
 	}
 
 	return nil
 }
 
-func (h *haloDB) resumeCompaction() error {
-	if C.halodb_resume_compaction(h.thread) != 0 {
+func (h *haloDB) resumeCompaction(thread *C.graal_isolatethread_t) error {
+	if C.halodb_resume_compaction(thread) != 0 {
 		return errors.New("failed to resume compaction")
 	}
 
@@ -81,7 +79,7 @@ func (h *haloDB) Open(path string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := h.attachThread()
+	thread, err := h.attachThread()
 	if err != nil {
 		return err
 	}
@@ -89,7 +87,7 @@ func (h *haloDB) Open(path string) error {
 	csPath := C.CString(path)
 	defer C.free(unsafe.Pointer(csPath))
 
-	if C.halodb_open(h.thread, csPath) != 0 {
+	if C.halodb_open(thread, csPath) != 0 {
 		return errors.New("failed to open halodb")
 	}
 
@@ -100,7 +98,7 @@ func (h *haloDB) Put(key, value string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := h.attachThread()
+	thread, err := h.attachThread()
 	if err != nil {
 		return err
 	}
@@ -111,7 +109,7 @@ func (h *haloDB) Put(key, value string) error {
 		C.free(unsafe.Pointer(csValue))
 	}()
 
-	if C.halodb_put(h.thread, csKey, csValue) != 0 {
+	if C.halodb_put(thread, csKey, csValue) != 0 {
 		return errors.Errorf("failed to store %s", key)
 	}
 
@@ -122,7 +120,7 @@ func (h *haloDB) Get(key string) (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := h.attachThread()
+	thread, err := h.attachThread()
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +128,7 @@ func (h *haloDB) Get(key string) (string, error) {
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
 
-	res := C.GoString(C.halodb_get(h.thread, csKey))
+	res := C.GoString(C.halodb_get(thread, csKey))
 	if res == "" {
 		return "", errors.Errorf("failed to get %s", key)
 	}
@@ -142,7 +140,7 @@ func (h *haloDB) Delete(key string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := h.attachThread()
+	thread, err := h.attachThread()
 	if err != nil {
 		return err
 	}
@@ -150,7 +148,7 @@ func (h *haloDB) Delete(key string) error {
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
 
-	if C.halodb_delete(h.thread, csKey) != 0 {
+	if C.halodb_delete(thread, csKey) != 0 {
 		return errors.Errorf("failed to delete %s", key)
 	}
 
@@ -161,12 +159,12 @@ func (h *haloDB) Size() (int64, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := h.attachThread()
+	thread, err := h.attachThread()
 	if err != nil {
 		return -1, err
 	}
 
-	res := C.halodb_size(h.thread)
+	res := C.halodb_size(thread)
 
 	return *(*int64)(unsafe.Pointer(&res)), nil
 }
@@ -175,16 +173,16 @@ func (h *haloDB) Close() error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := h.attachThread()
+	thread, err := h.attachThread()
 	if err != nil {
 		return err
 	}
 
-	if C.halodb_close(h.thread) != 0 {
+	if C.halodb_close(thread) != 0 {
 		return errors.New("failed to close")
 	}
 
-	if C.graal_detach_all_threads_and_tear_down_isolate(h.thread) != 0 {
+	if C.graal_detach_all_threads_and_tear_down_isolate(thread) != 0 {
 		return errors.New("failed to detach all threads and teardown isolate")
 	}
 
