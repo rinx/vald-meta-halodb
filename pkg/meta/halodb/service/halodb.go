@@ -12,6 +12,7 @@ import (
 	"unsafe"
 
 	"github.com/rinx/vald-meta-halodb/internal/errors"
+	"github.com/rinx/vald-meta-halodb/internal/log"
 )
 
 type haloDB struct {
@@ -59,6 +60,14 @@ func (h *haloDB) attachThread() (*C.graal_isolatethread_t, error) {
 	return newThread, nil
 }
 
+func (h *haloDB) detachThread(thread *C.graal_isolatethread_t) error {
+	if C.graal_detach_thread(thread) != 0 {
+		return errors.New("failed to detach thread")
+	}
+
+	return nil
+}
+
 func (h *haloDB) pauseCompaction(thread *C.graal_isolatethread_t) error {
 	if C.halodb_pause_compaction(thread) != 0 {
 		return errors.New("failed to pause compaction")
@@ -83,6 +92,12 @@ func (h *haloDB) Open(path string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = h.detachThread(thread)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 
 	csPath := C.CString(path)
 	defer C.free(unsafe.Pointer(csPath))
@@ -102,6 +117,12 @@ func (h *haloDB) Put(key, value string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = h.detachThread(thread)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 
 	csKey, csValue := C.CString(key), C.CString(value)
 	defer func() {
@@ -124,6 +145,12 @@ func (h *haloDB) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer func() {
+		err = h.detachThread(thread)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
@@ -144,6 +171,12 @@ func (h *haloDB) Delete(key string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = h.detachThread(thread)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 
 	csKey := C.CString(key)
 	defer C.free(unsafe.Pointer(csKey))
@@ -163,6 +196,12 @@ func (h *haloDB) Size() (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+	defer func() {
+		err = h.detachThread(thread)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 
 	res := C.halodb_size(thread)
 
