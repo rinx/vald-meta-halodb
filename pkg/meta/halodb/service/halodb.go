@@ -18,6 +18,7 @@ import (
 type haloDB struct {
 	isolate *C.graal_isolate_t
 	mu      sync.Mutex
+	limit   chan struct{}
 }
 
 type HaloDB interface {
@@ -30,6 +31,8 @@ type HaloDB interface {
 }
 
 func New() (HaloDB, error) {
+	limit := make(chan struct{}, 4)
+
 	var isolate *C.graal_isolate_t
 	var thread *C.graal_isolatethread_t
 
@@ -43,14 +46,17 @@ func New() (HaloDB, error) {
 
 	return &haloDB{
 		isolate: isolate,
+		limit:   limit,
 	}, nil
 }
 
 func (h *haloDB) attachThread() (*C.graal_isolatethread_t, error) {
-	thread := C.graal_get_current_thread(h.isolate)
-	if thread != nil {
-		return thread, nil
-	}
+	h.limit <- struct{}{}
+
+	// thread := C.graal_get_current_thread(h.isolate)
+	// if thread != nil {
+	// 	return thread, nil
+	// }
 
 	var newThread *C.graal_isolatethread_t
 	if C.graal_attach_thread(h.isolate, &newThread) != 0 {
@@ -64,6 +70,8 @@ func (h *haloDB) detachThread(thread *C.graal_isolatethread_t) error {
 	if C.graal_detach_thread(thread) != 0 {
 		return errors.New("failed to detach thread")
 	}
+
+	<-h.limit
 
 	return nil
 }
