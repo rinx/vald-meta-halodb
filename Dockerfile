@@ -10,7 +10,7 @@ WORKDIR /tmp
 RUN git clone https://github.com/rinx/libhalodb
 
 WORKDIR /tmp/libhalodb
-RUN make OPTS="-H:AlignedHeapChunkSize=524288 -H:StackYellowZoneSize=1048576 -R:StackSize=128m" target/native/libhalodb.so
+RUN make OPTS="-H:AllocationBeforePhysicalMemorySize=5M -H:StackYellowZoneSize=1M -R:StackSize=128M" target/native/libhalodb.so
 
 FROM vdaas/vald-base:latest AS builder
 
