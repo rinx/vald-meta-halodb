@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"runtime"
 
-	"github.com/rinx/vald-meta-halodb/pkg/meta/halodb/config"
-	"github.com/rinx/vald-meta-halodb/pkg/meta/halodb/usecase"
 	"github.com/rinx/vald-meta-halodb/internal/info"
 	"github.com/rinx/vald-meta-halodb/internal/log"
 	"github.com/rinx/vald-meta-halodb/internal/runner"
 	"github.com/rinx/vald-meta-halodb/internal/safety"
+	"github.com/rinx/vald-meta-halodb/pkg/meta/halodb/config"
+	"github.com/rinx/vald-meta-halodb/pkg/meta/halodb/usecase"
 )
 
 const (
@@ -18,6 +19,8 @@ const (
 )
 
 func main() {
+	runtime.GOMAXPROCS(1)
+
 	if err := safety.RecoverFunc(func() error {
 		return runner.Do(
 			context.Background(),
